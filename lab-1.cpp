@@ -1,33 +1,105 @@
-﻿#include <stdio.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <clocale>
+#include <string.h>
+#include <stdlib.h>
 
 #define MAX_SIZE 100
+#define TRUE 1
+#define FALSE 0
+
 
 int isValid(char ch, int pos) {
-    if (pos % 4 == 0) return ch >= '0' && ch <= '9';      // c - цифра
-    if (pos % 4 == 1) return (ch >= '0' && ch <= '9') && ((ch - '0') % 2 == 0); // i - четная цифра
-    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'); // b - буква
+    int pattern_pos = pos % 4;
+
+    switch (pattern_pos) {
+    case 0:
+        return isdigit(ch);
+    case 1:
+        return isdigit(ch) && ((ch - '0') % 2 == 0);
+    case 2:
+    case 3:
+        return isalpha(ch);
+    default:
+        return FALSE;
+    }
+}
+
+
+int validatePattern(const char set[], int size) {
+    for (int i = 0; i < size; i++) {
+        if (!isValid(set[i], i)) {
+            printf("Ошибка! Символ '%c' на позиции %d не соответствует шаблону cibb\n",
+                set[i], i + 1);
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 void inputSet(char set[], int* size, const char* name) {
-    printf("Введите элементы множества %s (тип cibb): ", name);
-    char ch;
-    *size = 0;
+    char input[MAX_SIZE * 2];
+    int attempt = 0;
 
-    while ((ch = getchar()) != '\n') {
-        if (isValid(ch, *size % 4)) {
-            int duplicate = 0;
-            for (int i = 0; i < *size; i++) {
-                if (set[i] == ch) {
-                    duplicate = 1;
+    while (attempt < 3) {
+        printf("Введите элементы множества %s (шаблон cibb - цифра, четная цифра, буква, буква): ", name);
+
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("Ошибка чтения ввода!\n");
+            continue;
+        }
+
+
+        input[strcspn(input, "\n")] = '\0';
+
+        *size = 0;
+        int error = FALSE;
+
+
+        for (int i = 0; input[i] != '\0' && *size < MAX_SIZE; i++) {
+            if (input[i] == ' ') continue;
+
+
+            if (!isValid(input[*size], *size)) {
+                printf("Ошибка! Символ '%c' на позиции %d не соответствует шаблону cibb\n",
+                    input[i], *size + 1);
+                error = TRUE;
+                break;
+            }
+
+
+            int duplicate = FALSE;
+            for (int j = 0; j < *size; j++) {
+                if (set[j] == input[i]) {
+                    printf("Ошибка! Дубликат символа '%c'\n", input[i]);
+                    duplicate = TRUE;
                     break;
                 }
             }
-            if (!duplicate && *size < MAX_SIZE) {
-                set[(*size)++] = ch;
+
+            if (duplicate) {
+                error = TRUE;
+                break;
+            }
+
+            set[(*size)++] = input[i];
+        }
+
+        if (!error && *size > 0) {
+            if (validatePattern(set, *size)) {
+                return;
             }
         }
+
+        attempt++;
+        printf("Неверный ввод! Попытка %d из 3\n", attempt);
+
+
+        *size = 0;
     }
+
+    printf("Превышено количество попыток ввода. Программа завершена.\n");
+    exit(1);
 }
 
 void printSet(const char set[], int size) {
@@ -40,9 +112,9 @@ void printSet(const char set[], int size) {
 
 int contains(const char set[], int size, char elem) {
     for (int i = 0; i < size; i++) {
-        if (set[i] == elem) return 1;
+        if (set[i] == elem) return TRUE;
     }
-    return 0;
+    return FALSE;
 }
 
 void setUnion(const char A[], int sizeA, const char B[], int sizeB, char result[], int* sizeResult) {
@@ -114,5 +186,6 @@ int main() {
     printf("\nСимметрическая разность A △ B: ");
     printSet(symDiff, sizeSymDiff);
 
+    printf("\n");
     return 0;
 }
